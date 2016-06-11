@@ -1,0 +1,11 @@
+# python
+/venv
+*.pyc
+
+# vi
+.*.swo
+.*.swp
+
+# sublime
+*.sublime-project
+*.sublime-workspace
