@@ -106,7 +106,7 @@ def aceptar_votacion(bot, update):
 		if len(secretSantas[santa_id]["people"]) > 1: # with one person cannot shuffle :D
 
 			secretSantas[santa_id]["status"] = "closed"
-			names = list(map(lambda l: l.first_name, secretSantas[santa_id]["people"]))
+			names = list(map(lambda l: l.first_name + " " + l.last_name, secretSantas[santa_id]["people"]))
 			secretSantas[santa_id]["relations"] = shuffle(names)
 			print(secretSantas[santa_id]["relations"])
 
@@ -122,13 +122,13 @@ def aceptar_votacion(bot, update):
 
 
 	if buttonid == "ButtonShow":
-		if user.first_name in secretSantas[santa_id]["relations"]:
-			person = secretSantas[santa_id]["relations"][user.first_name]
+		if user.first_name + " " + user.last_name in secretSantas[santa_id]["relations"]:
+			reply = "Tu amigo invisible es... " + secretSantas[santa_id]["relations"][user.first_name + " " + user.last_name]
 		else:
-			person = "Tu no participas"
-			
+			reply = "Tu no participas"
+
 		bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
-								text="Tu amigo invisible es... " + person,
+								text= reply,
 								show_alert=True)
 
 
