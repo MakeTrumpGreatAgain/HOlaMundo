@@ -9,3 +9,6 @@
 # sublime
 *.sublime-project
 *.sublime-workspace
+
+# secrets
+token.txt

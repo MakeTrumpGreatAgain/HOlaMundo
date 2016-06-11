@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
-    bot.sendMessage(update.message.chat_id, text='beeeeeeeeh')
+    bot.sendMessage(update.message.chat_id, text='This is a Santa ')
 
 
 def help(bot, update):
