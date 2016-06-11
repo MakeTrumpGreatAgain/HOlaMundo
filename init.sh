@@ -18,7 +18,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 # Create the venv if it doesn't exist
 if [[ ! -d "venv" ]]; then
 	echo "Creating virtual env in venv/ ..."
-	virtualenv venv
+	virtualenv -p "$( which /usr/bin/python2 )" venv
 
 	echo "Installing python-telegram-bot ..."
 	pip install python-telegram-bot
