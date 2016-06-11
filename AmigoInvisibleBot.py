@@ -1,119 +1,193 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Basic example for a bot that awaits an answer from the user. It's built upon
-# the state_machine_bot.py example
+# Simple Bot to reply to Telegram messages
 # This program is dedicated to the public domain under the CC0 license.
+"""
+This Bot uses the Updater class to handle the bot.
+First, a few handler functions are defined. Then, those functions are passed to
+the Dispatcher and registered at their respective places.
+Then, the bot is started and runs until we press Ctrl-C on the command line.
+Usage:
+Basic inline bot example. Applies different text transformations.
+Press Ctrl-C on the command line or send a signal to the process to stop the
+bot.
+"""
+from uuid import uuid4
 
+import random
+import re
+
+from telegram import InlineQueryResultArticle, ParseMode, \
+	InputTextMessageContent, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, InlineQueryHandler, CommandHandler, CallbackQueryHandler
 import logging
-from telegram import Emoji, ForceReply, InlineKeyboardButton, \
-    InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, \
-    CallbackQueryHandler, Filters
 
+# Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+					level=logging.INFO)
 
-# Define the different states a chat can be in
-MENU, AWAIT_CONFIRMATION, AWAIT_INPUT = range(3)
+logger = logging.getLogger(__name__)
 
-# Python 2 and 3 unicode differences
-try:
-    YES, NO = (Emoji.THUMBS_UP_SIGN.decode('utf-8'), Emoji.THUMBS_DOWN_SIGN.decode('utf-8'))
-except AttributeError:
-    YES, NO = (Emoji.THUMBS_UP_SIGN, Emoji.THUMBS_DOWN_SIGN)
-
-# States are saved in a dict that maps chat_id -> state
-state = dict()
-# Sometimes you need to save data temporarily
-context = dict()
-# This dict is used to store the settings value for the chat.
-# Usually, you'd use persistence for this (e.g. sqlite).
-values = dict()
+reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Yo me apunto!", callback_data="ButtonYes")], [InlineKeyboardButton("Finalizar", callback_data="ButtonEnd")]])
+reply_markup_2 = InlineKeyboardMarkup([[InlineKeyboardButton("Ver mi amigo invisible..", callback_data="ButtonShow")]])
 
 
-# Example handler. Will be called on the /set command and on regular messages
-def set_value(bot, update):
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    user_state = state.get(chat_id, MENU)
-
-    if user_state == MENU:
-        state[user_id] = AWAIT_INPUT  # set the state
-        bot.sendMessage(chat_id,
-                        text="Please enter your settings value",
-                        reply_markup=ForceReply())
+secretSantas = {}
 
 
-def entered_value(bot, update):
-    chat_id = update.message.chat_id
-    user_id = update.message.from_user.id
-    chat_state = state.get(user_id, MENU)
+#### Callbacks - Handlers ####
 
-    # Check if we are waiting for input
-    if chat_state == AWAIT_INPUT:
-        state[user_id] = AWAIT_CONFIRMATION
-
-        # Save the user id and the answer to context
-        context[user_id] = update.message.text
-        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(YES, callback_data=YES),
-                                              InlineKeyboardButton(NO, callback_data=NO)]])
-        bot.sendMessage(chat_id, text="Are you sure?", reply_markup=reply_markup)
-
-
-def confirm_value(bot, update):
-    query = update.callback_query
-    chat_id = query.message.chat_id
-    user_id = query.from_user.id
-    text = query.data
-    user_state = state.get(user_id, MENU)
-    user_context = context.get(user_id, None)
-
-    # Check if we are waiting for confirmation and the right user answered
-    if user_state == AWAIT_CONFIRMATION:
-        del state[user_id]
-        del context[user_id]
-        bot.answerCallbackQuery(query.id, text="Ok!")
-        if text == YES:
-            values[user_id] = user_context
-            bot.editMessageText(text="Changed value to %s." % values[user_id],
-                                chat_id=chat_id,
-                                message_id=query.message.message_id)
-        else:
-            bot.editMessageText(text="Alright, value is still %s." %
-                                values.get(user_id, 'not set'),
-                                chat_id=chat_id,
-                                message_id=query.message.message_id)
-
+def start(bot, update):
+	bot.sendMessage(update.message.chat_id, text='Hi!')
 
 def help(bot, update):
-    bot.sendMessage(update.message.chat_id, text="Use /set to test this bot.")
-
+	bot.sendMessage(update.message.chat_id, text='Help!')
 
 def error(bot, update, error):
-    logging.warning('Update "%s" caused error "%s"' % (update, error))
+	logger.warn('Update "%s" caused error "%s"' % (update, error))
+
+def escape_markdown(text):
+	"""Helper function to escape telegram markup symbols"""
+	escape_chars = '\*_`\['
+	return re.sub(r'([%s])' % escape_chars, r'\\\1', text)
 
 
-# Read config file
-with open("token.txt") as f:
-    bot_token = f.readline().strip()
+def new_secret_santa(bot, update):
+	query = update.inline_query.query
+	results = list()
 
-# Create the Updater and pass it your bot's token.
-updater = Updater(bot_token)
+	
+	results.append(InlineQueryResultArticle(id=uuid4(),
+											title=">> Crear Nuevo Amigo Invisible <<",
+											input_message_content=InputTextMessageContent(
+												"Amigo Invisible: De momento se apuntan 0 personas"),
+											reply_markup=reply_markup))
 
-# The command
-updater.dispatcher.add_handler(CommandHandler('set', set_value))
-# The answer
-updater.dispatcher.add_handler(MessageHandler([Filters.text], entered_value))
-# The confirmation
-updater.dispatcher.add_handler(CallbackQueryHandler(confirm_value))
-updater.dispatcher.add_handler(CommandHandler('start', help))
-updater.dispatcher.add_handler(CommandHandler('help', help))
-updater.dispatcher.add_error_handler(error)
+	bot.answerInlineQuery(update.inline_query.id, results=results)
 
-# Start the Bot
-updater.start_polling()
 
-# Run the bot until the user presses Ctrl-C or the process receives SIGINT,
-# SIGTERM or SIGABRT
-updater.idle()
+
+def aceptar_votacion(bot, update):
+	query = update.callback_query
+	santa_id = query.inline_message_id
+	buttonid = query.data
+	user = query.from_user
+
+	# print(user)
+
+	if buttonid == "ButtonYes":
+		if santa_id not in secretSantas:
+			secretSantas[santa_id] = {"people": [user], "status": "open", "relations": None}
+		else:
+			if secretSantas[santa_id]["status"] == "open":
+				# Check if the person is already in the list..
+				flag = 0
+				for u in secretSantas[santa_id]["people"]:
+					if u.id == user.id:
+						flag = 1
+				# ..if not, add it
+				if flag == 0:
+					secretSantas[santa_id]["people"].append(user)
+
+				reply_message = "*AMIGO INVISIBLE!*  \nDe momento se apuntan " + str(len(secretSantas[santa_id]["people"])) + " personas: "
+				for i in range(len(secretSantas[santa_id]["people"])-1):
+					reply_message = reply_message + secretSantas[santa_id]["people"][i].first_name + ", "
+				reply_message = reply_message + secretSantas[santa_id]["people"][-1].first_name
+
+				bot.editMessageText(text=reply_message,
+								inline_message_id=santa_id,
+								reply_markup=reply_markup,
+								parse_mode="Markdown")
+
+
+	if buttonid == "ButtonEnd":
+
+		if len(secretSantas[santa_id]["people"]) > 1: # with one person cannot shuffle :D
+
+			secretSantas[santa_id]["status"] = "closed"
+			names = list(map(lambda l: l.first_name, secretSantas[santa_id]["people"]))
+			secretSantas[santa_id]["relations"] = shuffle(names)
+			print(secretSantas[santa_id]["relations"])
+
+			reply_message = "*AMIGO INVISIBLE!* \nStatus: Cerrado  \nPersonas apuntadas: " + str(len(secretSantas[santa_id]["people"])) + " personas: "
+			for i in range(len(secretSantas[santa_id]["people"])-1):
+				reply_message = reply_message + secretSantas[santa_id]["people"][i].first_name + ", "
+			reply_message = reply_message + secretSantas[santa_id]["people"][-1].first_name
+
+			bot.editMessageText(text=reply_message,
+								inline_message_id=santa_id,
+								reply_markup=reply_markup_2,
+								parse_mode="Markdown")
+
+
+	if buttonid == "ButtonShow":
+		if user.first_name in secretSantas[santa_id]["relations"]:
+			person = secretSantas[santa_id]["relations"][user.first_name]
+		else:
+			person = "Tu no participas"
+			
+		bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+								text="Tu amigo invisible es... " + person,
+								show_alert=True)
+
+
+
+
+
+def shuffle(people):
+	targets = people[:]
+	done = False
+	while not done:
+		random.shuffle(targets)
+		done = all(people[i] != targets[i] for i in range(len(people)))
+	return dict(zip(people, targets))
+
+
+
+
+def main():
+
+	# Read config file
+	with open("token.txt") as f:
+		bot_token = f.readline().strip()
+
+	# Create the Updater and pass it your bot's token.
+	updater = Updater(bot_token)
+
+	# Get the dispatcher to register handlers
+	dp = updater.dispatcher
+
+
+
+
+
+	# on noncommand i.e message - echo the message on Telegram
+	dp.add_handler(InlineQueryHandler(new_secret_santa))
+	dp.add_handler(CallbackQueryHandler(aceptar_votacion))
+
+
+
+
+
+
+
+	# on different commands - answer in Telegram
+	dp.add_handler(CommandHandler("start", start))
+	dp.add_handler(CommandHandler("help", help))
+
+	# log all errors
+	dp.add_error_handler(error)
+
+	# Start the Bot
+	updater.start_polling()
+
+	# Block until the user presses Ctrl-C or the process receives SIGINT,
+	# SIGTERM or SIGABRT. This should be used most of the time, since
+	# start_polling() is non-blocking and will stop the bot gracefully.
+	updater.idle()
+
+
+if __name__ == '__main__':
+	main()
+
