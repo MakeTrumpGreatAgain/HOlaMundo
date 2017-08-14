@@ -51,7 +51,6 @@ def build_message(ss):
 
 	reply_message = (
 		"*Amigo invisible*           	\n"	+
-		"*==========================*	\n"	+
 		"Estado: _{}_                	\n" +
 		"Hay {} personas apuntadas:  	\n"	+
 		"{}                          	\n"	#
@@ -76,7 +75,7 @@ def new_secret_santa(bot, update):
 		InlineQueryResultArticle(
 			id                   	= uuid4(),
 			title                	= ">> Crear Nuevo Amigo Invisible <<",
-			input_message_content	= InputTextMessageContent("Amigo Invisible\nNo hay nadie apuntado. Se el primero!"),
+			input_message_content	= InputTextMessageContent("Amigo invisible\nNo hay nadie apuntado. Se el primero!"),
 			reply_markup         	= buttons_open)
 	]
 	bot.answerInlineQuery(update.inline_query.id, results=results)
@@ -144,7 +143,7 @@ def button_click_callback(bot, update):
 def main():
 
 	# Read config file
-	with open("token.txt") as f:
+	with open("/home/pi/telegram-secretsanta/token.txt") as f:
 		bot_token = f.readline().strip()
 
 	# Create the Updater and pass it your bot's token.
